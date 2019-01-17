@@ -89,6 +89,19 @@ extern int remap_vmalloc_range_partial(struct vm_area_struct *vma,
 extern int remap_vmalloc_range(struct vm_area_struct *vma, void *addr,
 							unsigned long pgoff);
 void vmalloc_sync_all(void);
+
+#ifndef CONFIG_MMU
+extern void *__vmalloc_node_flags(unsigned long size, int node, gfp_t flags);
+static inline void *__vmalloc_node_flags_caller(unsigned long size, int node,
+						gfp_t flags, void *caller)
+{
+	return __vmalloc_node_flags(size, node, flags);
+}
+#else
+extern void *__vmalloc_node_flags_caller(unsigned long size,
+					 int node, gfp_t flags, void *caller);
+#endif
+
  
 /*
  *	Lowlevel-APIs (not for driver use!)

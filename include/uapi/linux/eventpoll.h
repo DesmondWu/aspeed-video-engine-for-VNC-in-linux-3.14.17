@@ -26,6 +26,23 @@
 #define EPOLL_CTL_DEL 2
 #define EPOLL_CTL_MOD 3
 
+/* Epoll event masks */
+#define EPOLLIN		(__force unsigned int)0x00000001
+#define EPOLLPRI	(__force unsigned int)0x00000002
+#define EPOLLOUT	(__force unsigned int)0x00000004
+#define EPOLLERR	(__force unsigned int)0x00000008
+#define EPOLLHUP	(__force unsigned int)0x00000010
+#define EPOLLNVAL	(__force unsigned int)0x00000020
+#define EPOLLRDNORM	(__force unsigned int)0x00000040
+#define EPOLLRDBAND	(__force unsigned int)0x00000080
+#define EPOLLWRNORM	(__force unsigned int)0x00000100
+#define EPOLLWRBAND	(__force unsigned int)0x00000200
+#define EPOLLMSG	(__force unsigned int)0x00000400
+#define EPOLLRDHUP	(__force unsigned int)0x00002000
+
+/* Set exclusive wakeup mode for the target file descriptor */
+#define EPOLLEXCLUSIVE	((__force unsigned int)(1U << 28))
+
 /*
  * Request the handling of system wakeup events so as to prevent system suspends
  * from happening while those events are being processed.
