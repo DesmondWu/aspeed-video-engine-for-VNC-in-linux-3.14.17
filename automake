@@ -2,6 +2,7 @@
 
 make -j4;
 echo "------Make Finished------"
+
 make uImage;
 echo "------uImage Finished------"
 cp arch/arm/boot/uImage /tftpboot/;
