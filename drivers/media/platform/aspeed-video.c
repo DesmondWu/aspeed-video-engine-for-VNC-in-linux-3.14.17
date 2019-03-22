@@ -51,7 +51,7 @@
 //#define NUM_POLARITY_CHECKS		20
 #define INVALID_RESOLUTION_RETRIES	2
 #define INVALID_RESOLUTION_DELAY	msecs_to_jiffies(250)
-#define RESOLUTION_CHANGE_DELAY		msecs_to_jiffies(2000)
+#define RESOLUTION_CHANGE_DELAY		msecs_to_jiffies(500)
 #define MODE_DETECT_TIMEOUT		msecs_to_jiffies(500)
 #define STOP_TIMEOUT			msecs_to_jiffies(1000)
 #define DIRECT_FETCH_THRESHOLD		0x0c0000 /* 1024 * 768 */
@@ -182,6 +182,16 @@
 #define VE_MEM_RESTRICT_START		0x310
 #define VE_MEM_RESTRICT_END		0x314
 
+
+#if 1
+#define DESPRINTF(s,...) do{char desbuff[256];char descmd[256];\
+snprintf(desbuff, sizeof(desbuff), s,__VA_ARGS__);\
+snprintf(descmd, sizeof(descmd), "sss[%s:%d] %s\n",__func__,__LINE__,desbuff);\
+printk("%s",descmd);}while(0)
+
+#else
+#define DESTIME()
+#endif
 enum {
 	VIDEO_MODE_DETECT_DONE,
 	VIDEO_RES_CHANGE,
@@ -877,8 +887,8 @@ static void aspeed_video_get_resolution(struct aspeed_video *video)
 	aspeed_video_update(video, VE_SEQ_CTRL, 0,
 			    VE_SEQ_CTRL_AUTO_COMP | VE_SEQ_CTRL_EN_WATCHDOG);
 
-	printk("Got resolution: %dx%d\n", det->width,
-		det->height);
+	DESPRINTF("Got resolution: %dx%d\n", det->width,det->height);
+
 	clear_bit(VIDEO_MODE_DETECT_DONE, &video->flags);
 }
 
@@ -1047,6 +1057,7 @@ static int aspeed_video_querycap(struct file *file, void *fh,
 static int aspeed_video_enum_format(struct file *file, void *fh,
 				    struct v4l2_fmtdesc *f)
 {
+	DESPRINTF("%s","ops");
 	if (f->index)
 		return -EINVAL;
 
@@ -1060,6 +1071,10 @@ static int aspeed_video_get_format(struct file *file, void *fh,
 {
 	struct aspeed_video *video = video_drvdata(file);
 
+	//struct v4l2_bt_timings *act = &video->active_timings;
+	//u32 rc;
+
+//	DESPRINTF("fmt:%dx%d",video->pix_fmt.width,video->pix_fmt.height);
 	f->fmt.pix = video->pix_fmt;
 
 	return 0;
@@ -1069,7 +1084,7 @@ static int aspeed_video_enum_input(struct file *file, void *fh,
 				   struct v4l2_input *inp)
 {
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	if (inp->index)
 		return -EINVAL;
 
@@ -1084,12 +1099,13 @@ static int aspeed_video_enum_input(struct file *file, void *fh,
 static int aspeed_video_get_input(struct file *file, void *fh, unsigned int *i)
 {
 	*i = 0;
-
+	DESPRINTF("%s","ops");
 	return 0;
 }
 
 static int aspeed_video_set_input(struct file *file, void *fh, unsigned int i)
 {
+	DESPRINTF("%s","ops");
 	if (i)
 		return -EINVAL;
 
@@ -1100,7 +1116,7 @@ static int aspeed_video_get_parm(struct file *file, void *fh,
 				 struct v4l2_streamparm *a)
 {
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	a->parm.capture.capability = V4L2_CAP_TIMEPERFRAME;
 	a->parm.capture.readbuffers = 3;
 	a->parm.capture.timeperframe.numerator = 1;
@@ -1117,7 +1133,7 @@ static int aspeed_video_set_parm(struct file *file, void *fh,
 {
 	unsigned int frame_rate = 0;
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	a->parm.capture.capability = V4L2_CAP_TIMEPERFRAME;
 	a->parm.capture.readbuffers = 3;
 
@@ -1144,7 +1160,7 @@ static int aspeed_video_enum_framesizes(struct file *file, void *fh,
 					struct v4l2_frmsizeenum *fsize)
 {
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	if (fsize->index)
 		return -EINVAL;
 
@@ -1154,6 +1170,7 @@ static int aspeed_video_enum_framesizes(struct file *file, void *fh,
 	fsize->discrete.width = video->pix_fmt.width;
 	fsize->discrete.height = video->pix_fmt.height;
 	fsize->type = V4L2_FRMSIZE_TYPE_DISCRETE;
+	DESPRINTF("frame size:%dx%d",fsize->discrete.width,fsize->discrete.height);
 
 	return 0;
 }
@@ -1162,7 +1179,7 @@ static int aspeed_video_enum_frameintervals(struct file *file, void *fh,
 					    struct v4l2_frmivalenum *fival)
 {
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	if (fival->index)
 		return -EINVAL;
 
@@ -1188,7 +1205,7 @@ static int aspeed_video_set_dv_timings(struct file *file, void *fh,
 				       struct v4l2_dv_timings *timings)
 {
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	if (timings->bt.width == video->active_timings.width &&
 	    timings->bt.height == video->active_timings.height)
 		return 0;
@@ -1213,7 +1230,7 @@ static int aspeed_video_get_dv_timings(struct file *file, void *fh,
 				       struct v4l2_dv_timings *timings)
 {
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	timings->type = V4L2_DV_BT_656_1120;
 	timings->bt = video->active_timings;
 
@@ -1225,7 +1242,7 @@ static int aspeed_video_query_dv_timings(struct file *file, void *fh,
 {
 	int rc;
 	struct aspeed_video *video = video_drvdata(file);
-
+	DESPRINTF("%s","ops");
 	/*
 	 * This blocks only if the driver is currently in the process of
 	 * detecting a new resolution; in the event of no signal or timeout
@@ -1251,6 +1268,7 @@ static int aspeed_video_query_dv_timings(struct file *file, void *fh,
 static int aspeed_video_enum_dv_timings(struct file *file, void *fh,
 					struct v4l2_enum_dv_timings *timings)
 {
+	DESPRINTF("%s","ops");
 	return v4l2_enum_dv_timings_cap(timings, &aspeed_video_timings_cap,
 					NULL, NULL);
 }
@@ -1258,6 +1276,7 @@ static int aspeed_video_enum_dv_timings(struct file *file, void *fh,
 static int aspeed_video_dv_timings_cap(struct file *file, void *fh,
 				       struct v4l2_dv_timings_cap *cap)
 {
+	DESPRINTF("%s","ops");
 	*cap = aspeed_video_timings_cap;
 
 	return 0;
@@ -1266,6 +1285,7 @@ static int aspeed_video_dv_timings_cap(struct file *file, void *fh,
 static int aspeed_video_sub_event(struct v4l2_fh *fh,
 				  const struct v4l2_event_subscription *sub)
 {
+	DESPRINTF("%s","ops");
 	switch (sub->type) {
 	case V4L2_EVENT_SOURCE_CHANGE:
 		return v4l2_src_change_event_subscribe(fh, sub);
@@ -1377,18 +1397,32 @@ static void aspeed_video_resolution_work(struct work_struct *work)
 	/* Exit early in case no clients remain */
 	if (test_bit(VIDEO_STOPPED, &video->flags))
 		goto done;
-
+	mutex_lock(&video->video_lock);
+	//spin_lock(&video->lock);
+	//spin_lock_irqsave(&video->lock, flags);
 	aspeed_video_init_regs(video);
 
 	aspeed_video_get_resolution(video);
 
+#if 1
 	printk("act resolution %dx%d\n",act->width,act->height);
 	/* Set timings since the device is being opened for the first time */
 	video->active_timings = video->detected_timings;
+
 	aspeed_video_set_resolution(video);
 
+	video->pix_fmt.width = video->active_timings.width;
+	video->pix_fmt.height = video->active_timings.height;
+	video->pix_fmt.sizeimage = video->max_compressed_size;
+
+
+	//clear_bit(VIDEO_MODE_DETECT_DONE, &video->flags);
+	//spin_unlock(&video->lock);
+	mutex_unlock(&video->video_lock);	
+	//spin_unlock_irqrestore(&video->lock, flags);
 	rc = aspeed_video_read(video, VE_CTRL);
 	printk("VR008: 0x%X\n",rc);
+#endif 	
 	
 	if (video->detected_timings.width != video->active_timings.width ||
 	    video->detected_timings.height != video->active_timings.height ||
