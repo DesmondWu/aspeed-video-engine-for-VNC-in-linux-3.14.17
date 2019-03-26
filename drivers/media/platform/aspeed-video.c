@@ -763,7 +763,6 @@ static void aspeed_video_calc_compressed_size(struct aspeed_video *video,
 }
 
 #define res_check(v) test_and_clear_bit(VIDEO_MODE_DETECT_DONE, &(v)->flags)
-
 static void aspeed_video_get_resolution(struct aspeed_video *video)
 {
 	bool invalid_resolution = true;
@@ -888,7 +887,6 @@ static void aspeed_video_get_resolution(struct aspeed_video *video)
 			    VE_SEQ_CTRL_AUTO_COMP | VE_SEQ_CTRL_EN_WATCHDOG);
 
 	DESPRINTF("Got resolution: %dx%d\n", det->width,det->height);
-
 	clear_bit(VIDEO_MODE_DETECT_DONE, &video->flags);
 }
 
@@ -1003,8 +1001,8 @@ static void aspeed_video_init_regs(struct aspeed_video *video)
 	aspeed_video_write(video, VE_SCALING_FILTER3, 0x00200000);
 
 	/* Set mode detection defaults */
-//	aspeed_video_write(video, VE_MODE_DETECT, 0x22666500);
-	aspeed_video_write(video, VE_MODE_DETECT, 0x44446500);
+	aspeed_video_write(video, VE_MODE_DETECT, 0x22666500);
+//	aspeed_video_write(video, VE_MODE_DETECT, 0x44446500);
 }
 
 static void aspeed_video_start(struct aspeed_video *video)
@@ -1391,14 +1389,15 @@ static void aspeed_video_resolution_work(struct work_struct *work)
 	u32 input_status = video->v4l2_input_status;
 	struct v4l2_bt_timings *act = &video->active_timings;
 	u32 rc;
-
+	//unsigned long flags;
+	
 	aspeed_video_on(video);
 
 	/* Exit early in case no clients remain */
 	if (test_bit(VIDEO_STOPPED, &video->flags))
 		goto done;
-	mutex_lock(&video->video_lock);
-	//spin_lock(&video->lock);
+	//mutex_lock(&video->video_lock);
+	spin_lock(&video->lock);
 	//spin_lock_irqsave(&video->lock, flags);
 	aspeed_video_init_regs(video);
 
@@ -1416,9 +1415,10 @@ static void aspeed_video_resolution_work(struct work_struct *work)
 	video->pix_fmt.sizeimage = video->max_compressed_size;
 
 
+	
+	spin_unlock(&video->lock);
 	//clear_bit(VIDEO_MODE_DETECT_DONE, &video->flags);
-	//spin_unlock(&video->lock);
-	mutex_unlock(&video->video_lock);	
+	//mutex_unlock(&video->video_lock);	
 	//spin_unlock_irqrestore(&video->lock, flags);
 	rc = aspeed_video_read(video, VE_CTRL);
 	printk("VR008: 0x%X\n",rc);

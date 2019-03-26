@@ -44,6 +44,15 @@ module_param(debug, int, 0644);
 
 #ifdef CONFIG_VIDEO_ADV_DEBUG
 
+#if 0
+#define DESPRINTF(s,...) do{char desbuff[256];char descmd[256];\
+snprintf(desbuff, sizeof(desbuff), s,__VA_ARGS__);\
+snprintf(descmd, sizeof(descmd), "des [%s:%d] %s\n",__func__,__LINE__,desbuff);\
+printk("%s",descmd);}while(0)
+
+#else
+#define DESPRINTF(s,...)
+#endif
 /*
  * If advanced debugging is on, then count how often each op is called
  * successfully, which can either be per-buffer or per-queue.
@@ -976,7 +985,7 @@ static int __prepare_mmap(struct vb2_buffer *vb, const void *pb)
 	if (pb)
 		ret = call_bufop(vb->vb2_queue, fill_vb2_buffer,
 				 vb, pb, vb->planes);
-	return ret ? ret : call_vb_qop(vb, buf_prepare, vb);
+	return ret;// ? ret : call_vb_qop(vb, buf_prepare, vb);
 }
 
 /*
@@ -1012,7 +1021,7 @@ static int __prepare_userptr(struct vb2_buffer *vb, const void *pb)
 
 		/* Check if the provided plane buffer is large enough */
 		if (planes[plane].length < vb->planes[plane].min_length) {
-			dprintk(1, "provided buffer size %u is less than setup size %u for plane %d\n",
+			DESPRINTF( "provided buffer size %u is less than setup size %u for plane %d\n",
 						planes[plane].length,
 						vb->planes[plane].min_length,
 						plane);
@@ -1041,7 +1050,7 @@ static int __prepare_userptr(struct vb2_buffer *vb, const void *pb)
 				planes[plane].m.userptr,
 				planes[plane].length, q->dma_dir);
 		if (IS_ERR(mem_priv)) {
-			dprintk(1, "failed acquiring userspace memory for plane %d\n",
+			DESPRINTF( "failed acquiring userspace memory for plane %d\n",
 				plane);
 			ret = PTR_ERR(mem_priv);
 			goto err;
@@ -1253,7 +1262,7 @@ static int __buf_prepare(struct vb2_buffer *vb, const void *pb)
 		dprintk(1, "fatal error occurred on queue\n");
 		return -EIO;
 	}
-
+	DESPRINTF( "%s","check point\n");
 	vb->state = VB2_BUF_STATE_PREPARING;
 
 	switch (q->memory) {
@@ -1267,12 +1276,12 @@ static int __buf_prepare(struct vb2_buffer *vb, const void *pb)
 		ret = __prepare_dmabuf(vb, pb);
 		break;
 	default:
-		WARN(1, "Invalid queue type\n");
+		DESPRINTF("%s", "Invalid queue type\n");
 		ret = -EINVAL;
 	}
 
 	if (ret) {
-		dprintk(1, "buffer preparation failed: %d\n", ret);
+		DESPRINTF( "buffer preparation failed: %d,%d\n", ret,q->memory);
 		vb->state = VB2_BUF_STATE_DEQUEUED;
 		return ret;
 	}
@@ -1370,6 +1379,7 @@ static int vb2_start_streaming(struct vb2_queue *q)
 	 * vb2_buffer_done(vb, VB2_BUF_STATE_QUEUED) but STATE_ERROR or
 	 * STATE_DONE.
 	 */
+	DESPRINTF( "%s","check point\n");
 	WARN_ON(!list_empty(&q->done_list));
 	return ret;
 }
@@ -1395,13 +1405,13 @@ int vb2_core_qbuf(struct vb2_queue *q, unsigned int index, void *pb)
 	case VB2_BUF_STATE_PREPARED:
 		break;
 	case VB2_BUF_STATE_PREPARING:
-		dprintk(1, "buffer still being prepared\n");
+		DESPRINTF( "%s","buffer still being prepared\n");
 		return -EINVAL;
 	default:
-		dprintk(1, "invalid buffer state %d\n", vb->state);
+		DESPRINTF( "invalid buffer state %d\n", vb->state);
 		return -EINVAL;
 	}
-
+	DESPRINTF( "%s","check point\n");
 	/*
 	 * Add to the queued buffers list, a buffer will stay on it until
 	 * dequeued in dqbuf.
@@ -2348,7 +2358,7 @@ static size_t __vb2_perform_fileio(struct vb2_queue *q, char __user *data, size_
 	unsigned index;
 	int ret;
 
-	dprintk(3, "mode %s, offset %ld, count %zd, %sblocking\n",
+	DESPRINTF("mode %s, offset %ld, count %zd, %sblocking\n",
 		read ? "read" : "write", (long)*ppos, count,
 		nonblock ? "non" : "");
 
@@ -2360,7 +2370,7 @@ static size_t __vb2_perform_fileio(struct vb2_queue *q, char __user *data, size_
 	 */
 	if (!vb2_fileio_is_active(q)) {
 		ret = __vb2_init_fileio(q, read);
-		dprintk(3, "vb2_init_fileio result: %d\n", ret);
+		DESPRINTF("vb2_init_fileio result: %d\n", ret);
 		if (ret)
 			return ret;
 	}
@@ -2377,7 +2387,7 @@ static size_t __vb2_perform_fileio(struct vb2_queue *q, char __user *data, size_
 		 * Call vb2_dqbuf to get buffer back.
 		 */
 		ret = vb2_core_dqbuf(q, &index, NULL, nonblock);
-		dprintk(5, "vb2_dqbuf result: %d\n", ret);
+		DESPRINTF("vb2_dqbuf result: %d\n", ret);
 		if (ret)
 			return ret;
 		fileio->dq_count += 1;
@@ -2408,20 +2418,20 @@ static size_t __vb2_perform_fileio(struct vb2_queue *q, char __user *data, size_
 	 */
 	if (buf->pos + count > buf->size) {
 		count = buf->size - buf->pos;
-		dprintk(5, "reducing read count: %zd\n", count);
+		DESPRINTF( "reducing read count: %zd\n", count);
 	}
 
 	/*
 	 * Transfer data to userspace.
 	 */
-	dprintk(3, "copying %zd bytes - buffer %d, offset %u\n",
+	DESPRINTF( "copying %zd bytes - buffer %d, offset %u\n",
 		count, index, buf->pos);
 	if (read)
 		ret = copy_to_user(data, buf->vaddr + buf->pos, count);
 	else
 		ret = copy_from_user(buf->vaddr + buf->pos, data, count);
 	if (ret) {
-		dprintk(3, "error copying data\n");
+		DESPRINTF( "%s","error copying data\n");
 		return -EFAULT;
 	}
 
@@ -2441,7 +2451,7 @@ static size_t __vb2_perform_fileio(struct vb2_queue *q, char __user *data, size_
 		 * Check if this is the last buffer to read.
 		 */
 		if (read && fileio->read_once && fileio->dq_count == 1) {
-			dprintk(3, "read limit reached\n");
+			DESPRINTF( "%s","read limit reached\n");
 			return __vb2_cleanup_fileio(q);
 		}
 
@@ -2453,7 +2463,7 @@ static size_t __vb2_perform_fileio(struct vb2_queue *q, char __user *data, size_
 		if (copy_timestamp)
 			b->timestamp = ktime_to_ns(ktime_get());
 		ret = vb2_core_qbuf(q, index, NULL);
-		dprintk(5, "vb2_dbuf result: %d\n", ret);
+		DESPRINTF("vb2_dbuf result: %d\n", ret);
 		if (ret)
 			return ret;
 

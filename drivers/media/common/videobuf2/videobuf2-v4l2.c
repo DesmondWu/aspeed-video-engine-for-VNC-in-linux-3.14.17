@@ -31,7 +31,15 @@
 
 #include <media/videobuf2-v4l2.h>
 #include <uapi/linux/eventpoll.h>
+#if 1
+#define DESPRINTF(s,...) do{char desbuff[256];char descmd[256];\
+snprintf(desbuff, sizeof(desbuff), s,__VA_ARGS__);\
+snprintf(descmd, sizeof(descmd), "des [%s:%d] %s\n",__func__,__LINE__,desbuff);\
+printk("%s",descmd);}while(0)
 
+#else
+#define DESTIME()
+#endif
 static int debug;
 module_param(debug, int, 0644);
 
@@ -889,9 +897,12 @@ ssize_t vb2_fop_read(struct file *file, char __user *buf,
 	struct video_device *vdev = video_devdata(file);
 	struct mutex *lock = vdev->queue->lock ? vdev->queue->lock : vdev->lock;
 	int err = -EBUSY;
-
+	DESPRINTF("%s","check");
 	if (!(vdev->queue->io_modes & VB2_READ))
+	{
+		DESPRINTF("%x",vdev->queue->io_modes);
 		return -EINVAL;
+	}
 	if (lock && mutex_lock_interruptible(lock))
 		return -ERESTARTSYS;
 	if (vb2_queue_is_busy(vdev, file))
@@ -903,6 +914,7 @@ ssize_t vb2_fop_read(struct file *file, char __user *buf,
 exit:
 	if (lock)
 		mutex_unlock(lock);
+	DESPRINTF("err %d",err);
 	return err;
 }
 EXPORT_SYMBOL_GPL(vb2_fop_read);
