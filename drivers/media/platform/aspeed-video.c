@@ -380,6 +380,7 @@ static const struct v4l2_dv_timings_cap aspeed_video_timings_cap = {
 	},
 };
 
+unsigned int SpuriousTimeouts = 0;
 static void aspeed_video_init_jpeg_table(u32 *table, bool yuv420)
 {
 	int i;
@@ -785,7 +786,8 @@ static int aspeed_video_get_resolution(struct aspeed_video *video)
 		if (!rc) {
 			dev_err(video->dev, "Timed out; first mode detect\n");
 			clear_bit(VIDEO_RES_DETECT, &video->flags);
-			return -1;
+			SpuriousTimeouts++;
+			//return -1;
 		}
 
 		/* Disable mode detect in order to re-trigger */
@@ -802,7 +804,8 @@ static int aspeed_video_get_resolution(struct aspeed_video *video)
 		clear_bit(VIDEO_RES_DETECT, &video->flags);
 		if (!rc) {
 			dev_err(video->dev, "Timed out; second mode detect\n");
-			return -1;
+			SpuriousTimeouts++;
+			//return -1;
 		}
 
 		src_lr_edge = aspeed_video_read(video, VE_SRC_LR_EDGE_DET);
